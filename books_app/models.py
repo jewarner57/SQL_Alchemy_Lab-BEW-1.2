@@ -3,11 +3,13 @@ from books_app import db
 from sqlalchemy.orm import backref
 import enum
 
+
 class Audience(enum.Enum):
     CHILDREN = 1
     YOUNG_ADULT = 2
     ADULT = 3
     ALL = 4
+
 
 class Book(db.Model):
     """Book model."""
@@ -15,21 +17,27 @@ class Book(db.Model):
     title = db.Column(db.String(80), nullable=False)
     publish_date = db.Column(db.Date)
 
+    favorited_by = db.relationship(
+        'User', secondary='user_favorite_books', back_populates='favorites')
+
     # The author - Who wrote it?
-    author_id = db.Column(db.Integer, db.ForeignKey('author.id'), nullable=False)
+    author_id = db.Column(db.Integer, db.ForeignKey(
+        'author.id'), nullable=False)
     author = db.relationship('Author', back_populates='books')
-    
+
     # The audience - Who is this book written for?
     audience = db.Column(db.Enum(Audience), default=Audience.ALL)
 
     # The genres, e.g. fiction, sci-fi, fantasy
-    genres = db.relationship('Genre', secondary='book_genre', back_populates='books')
+    genres = db.relationship(
+        'Genre', secondary='book_genre', back_populates='books')
 
     def __str__(self):
         return f'<Book: {self.title}>'
 
     def __repr__(self):
-        return f'<Book: {self.title}>'
+        return f'<Book: {self.title}, {self.publish_date}, {self.genres}>'
+
 
 class Author(db.Model):
     """Author model."""
@@ -43,11 +51,13 @@ class Author(db.Model):
     def __repr__(self):
         return f'<Author: {self.name}>'
 
+
 class Genre(db.Model):
     """Genre model."""
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False, unique=True)
-    books = db.relationship('Book', secondary='book_genre', back_populates='genres')
+    books = db.relationship(
+        'Book', secondary='book_genre', back_populates='genres')
 
     def __str__(self):
         return f'<Genre: {self.name}>'
@@ -55,7 +65,28 @@ class Genre(db.Model):
     def __repr__(self):
         return f'<Genre: {self.name}>'
 
+
+class User(db.Model):
+    """User model"""
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), nullable=False, unique=True)
+    favorites = db.relationship(
+        'Book', secondary='user_favorite_books', back_populates='favorited_by')
+
+    def __repr__(self):
+        return f'<User: {self.username}>'
+
+
 book_genre_table = db.Table('book_genre',
-    db.Column('book_id', db.Integer, db.ForeignKey('book.id')),
-    db.Column('genre_id', db.Integer, db.ForeignKey('genre.id'))
-)
+                            db.Column('book_id', db.Integer,
+                                      db.ForeignKey('book.id')),
+                            db.Column('genre_id', db.Integer,
+                                      db.ForeignKey('genre.id'))
+                            )
+
+user_favorite_books_table = db.Table('user_favorite_books',
+                                     db.Column('book_id', db.Integer,
+                                               db.ForeignKey('book.id')),
+                                     db.Column('user_id', db.Integer,
+                                               db.ForeignKey('user.id'))
+                                     )
